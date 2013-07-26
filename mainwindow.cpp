@@ -119,6 +119,8 @@ void MainWindow::usbUploadFullBsl() {
         }
         ui->ProgressStatus->appendPlainText(tr("[>>] Restart BSL"));
         bslCommandLoadPC(device_handle,0x2504);
+
+        usbClose();
     } else {
 
     }
@@ -148,6 +150,8 @@ void MainWindow::usbUploadProgram(const QString &filename) {
 
 void MainWindow::usbClose() {
     if(device_handle) {
+        ui->DeviceStatus->setText("");
+        ui->ProgressStatus->appendPlainText(tr("[>>] Closing usb connection"));
         libusb_release_interface(device_handle, 0);
         libusb_close(device_handle);
         device_handle = 0;
@@ -364,7 +368,7 @@ void MainWindow::on_UploadFirmware_clicked() {
 }
 
 void MainWindow::on_SelectFirmwareFile_clicked() {
-    QString fn = QFileDialog::getOpenFileName(this,tr("Select firmware file"),".","*.hex");
+    QString fn = QFileDialog::getOpenFileName(this,tr("Select firmware file"),".","*.hex *.ihex");
     if(!fn.isNull()) {
         ui->FirmwareFIle->setText(fn);
     }
