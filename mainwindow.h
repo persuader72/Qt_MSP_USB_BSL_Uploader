@@ -19,10 +19,12 @@ protected:
 private slots:
     void on_UploadFirmware_clicked();
 
+    void on_SelectFirmwareFile_clicked();
+
 private:
     void usbDiscovery();
     void usbUploadFullBsl();
-    void usbUploadProgram();
+    void usbUploadProgram(const QString &filename);
     void usbClose();
 private:
     void bslCommandLoadPC(libusb_device_handle *device_handle,int address);
@@ -34,6 +36,7 @@ private:
 private:
     Ui::MainWindow *ui;
     int mTimerId;
+    bool mIsFullBsl;
     libusb_context *ctx;
     libusb_device_handle *device_handle;
 };

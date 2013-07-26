@@ -35,10 +35,10 @@
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
-       <widget class="QLineEdit" name="lineEdit"/>
+       <widget class="QLineEdit" name="FirmwareFIle"/>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton">
+       <widget class="QPushButton" name="SelectFirmwareFile">
         <property name="text">
          <string>Select Firmware</string>
         </property>
@@ -48,6 +48,9 @@
     </item>
     <item>
      <widget class="QPushButton" name="UploadFirmware">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="text">
        <string>Upload firmware</string>
       </property>

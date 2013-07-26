@@ -5,6 +5,7 @@
 
 #include <QDebug>
 #include <QFile>
+#include <QFileDialog>
 
 #include <unistd.h>
 
@@ -21,7 +22,7 @@
 #define TIMEOUT_MS 5000
 
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),ui(new Ui::MainWindow),device_handle(0) {
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),ui(new Ui::MainWindow),mIsFullBsl(false),device_handle(0) {
     ui->setupUi(this);
 
     int r;
@@ -83,8 +84,9 @@ void MainWindow::usbDiscovery() {
                                         usbUploadFullBsl();
                                      }
                                 } else if(r.at(0)==0x3A) {
+                                    mIsFullBsl = true;
                                     ui->ProgressStatus->appendPlainText(tr("[<<] BSL version: ")+r.mid(1).toHex());
-                                    usbUploadProgram();
+                                    ui->UploadFirmware->setEnabled(true);
                                 }
                             }
                         }
@@ -122,9 +124,9 @@ void MainWindow::usbUploadFullBsl() {
     }
 }
 
-void MainWindow::usbUploadProgram() {
+void MainWindow::usbUploadProgram(const QString &filename) {
     ui->ProgressStatus->appendPlainText(tr("[>>] Send program file"));
-    QFile hexfile("/home/stefano/colibrifw.hex");
+    QFile hexfile(filename);
     if(hexfile.open(QIODevice::ReadOnly)) {
         QIntelHexParser parser;
         parser.parseFile(hexfile);
@@ -136,12 +138,12 @@ void MainWindow::usbUploadProgram() {
                 bslCommandRXDataBlock(device_handle,seg.address+offs,mid,false);
             }
         }
+
+        ui->ProgressStatus->appendPlainText(tr("[>>] Restart MSP"));
+        bslCommandLoadPC(device_handle,0x8004);
     } else {
-
+        ui->ProgressStatus->appendPlainText(tr("[??] Openf firmware file failed")+filename);
     }
-
-    ui->ProgressStatus->appendPlainText(tr("[>>] Restart MSP"));
-    bslCommandLoadPC(device_handle,0x8004);
 }
 
 void MainWindow::usbClose() {
@@ -353,5 +355,17 @@ QByteArray MainWindow::bslReadWrite(libusb_device_handle *device_handle,const QB
  */
 
 void MainWindow::on_UploadFirmware_clicked() {
+    if(device_handle && mIsFullBsl) {
+        if(!ui->FirmwareFIle->text().isEmpty()) {
+            usbUploadProgram(ui->FirmwareFIle->text());
+        }
 
+    }
+}
+
+void MainWindow::on_SelectFirmwareFile_clicked() {
+    QString fn = QFileDialog::getOpenFileName(this,tr("Select firmware file"),".","*.hex");
+    if(!fn.isNull()) {
+        ui->FirmwareFIle->setText(fn);
+    }
 }
