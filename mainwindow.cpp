@@ -82,6 +82,19 @@ void MainWindow::usbDiscovery() {
                                      } else if(r.size()>1 && r.at(0)==0x3B && r.at(1)==0x00) {
                                         ui->ProgressStatus->appendPlainText(tr("[<<] BSL unlock successfull"));
                                         usbUploadFullBsl();
+                                     } else if(r.size()>1 && r.at(0)==0x3B && r.at(1)==0x05) {
+                                        ui->ProgressStatus->appendPlainText(tr("[<<] wrong BSL password (mass erase occurred)"));
+                                        ui->ProgressStatus->appendPlainText(tr("[>>] Send unlock password"));
+                                        r=bslCommandRXPassword();
+                                        if(r.size()==0) {
+                                            ui->ProgressStatus->appendPlainText(tr("[??] Comunication error"));
+                                        } else if(r.size()>1 && r.at(0)==0x3B && r.at(1)==0x00) {
+                                           ui->ProgressStatus->appendPlainText(tr("[<<] BSL unlock successfull"));
+                                           usbUploadFullBsl();
+                                        } else if(r.size()>1 && r.at(0)==0x3B && r.at(1)==0x05) {
+                                            ui->ProgressStatus->appendPlainText(tr("[<<] wrong BSL password"));
+                                            usbClose();
+                                        }
                                      }
                                 } else if(r.at(0)==0x3A) {
                                     mIsFullBsl = true;
