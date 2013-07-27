@@ -42,6 +42,7 @@ MainWindow::~MainWindow() {
 
 void MainWindow::timerEvent(QTimerEvent *) {
     usbDiscovery();
+    usbCheckBslVersion();
 }
 
 void MainWindow::usbDiscovery() {
@@ -59,7 +60,8 @@ void MainWindow::usbDiscovery() {
                  qDebug("MainWindow::MainWindow libusb_get_device_descriptor error");
             } else {
                 if(device_descriptor.idVendor==0x2047 && device_descriptor.idProduct==0x0200) {
-                    if(!device_handle) {
+                    if(device_handle) {
+                    } else {
                         if((r=libusb_open(device_list[i],&device_handle))<0) {
                              ui->DeviceStatus->setText(tr("error on libusb_open")+QString(libusb_error_name(r)));
                         } else {
@@ -69,42 +71,10 @@ void MainWindow::usbDiscovery() {
                                 usbClose();
                             } else {
                                 ui->DeviceStatus->setText(tr("USB BSL device OPENED!!!!!"));
-                                ui->ProgressStatus->appendPlainText(tr("[>>] Request BSL version"));
-                                QByteArray r=bslCommandTXBSLVersion();
-                                if(r.size()==0) {
-                                    ui->ProgressStatus->appendPlainText(tr("[??] Comunication error"));
-                                } else if(r.at(0)==0x3B) {
-                                     ui->ProgressStatus->appendPlainText(tr("[<<] limited BSL version"));
-                                     ui->ProgressStatus->appendPlainText(tr("[>>] Send unlock password"));
-                                     r=bslCommandRXPassword();
-                                     if(r.size()==0) {
-                                         ui->ProgressStatus->appendPlainText(tr("[??] Comunication error"));
-                                     } else if(r.size()>1 && r.at(0)==0x3B && r.at(1)==0x00) {
-                                        ui->ProgressStatus->appendPlainText(tr("[<<] BSL unlock successfull"));
-                                        usbUploadFullBsl();
-                                     } else if(r.size()>1 && r.at(0)==0x3B && r.at(1)==0x05) {
-                                        ui->ProgressStatus->appendPlainText(tr("[<<] wrong BSL password (mass erase occurred)"));
-                                        ui->ProgressStatus->appendPlainText(tr("[>>] Send unlock password"));
-                                        r=bslCommandRXPassword();
-                                        if(r.size()==0) {
-                                            ui->ProgressStatus->appendPlainText(tr("[??] Comunication error"));
-                                        } else if(r.size()>1 && r.at(0)==0x3B && r.at(1)==0x00) {
-                                           ui->ProgressStatus->appendPlainText(tr("[<<] BSL unlock successfull"));
-                                           usbUploadFullBsl();
-                                        } else if(r.size()>1 && r.at(0)==0x3B && r.at(1)==0x05) {
-                                            ui->ProgressStatus->appendPlainText(tr("[<<] wrong BSL password"));
-                                            usbClose();
-                                        }
-                                     }
-                                } else if(r.at(0)==0x3A) {
-                                    mIsFullBsl = true;
-                                    ui->ProgressStatus->appendPlainText(tr("[<<] BSL version: ")+r.mid(1).toHex());
-                                    ui->UploadFirmware->setEnabled(true);
-                                }
+                                usbCheckBslVersion();
                             }
                         }
                     }
-
                     break;
                 }
             }
@@ -113,6 +83,48 @@ void MainWindow::usbDiscovery() {
             ui->DeviceStatus->setText(tr("No USB BSL detected!!!"));
         }
         libusb_free_device_list(device_list,true);
+    }
+}
+
+void MainWindow::usbCheckBslVersion() {
+    if(device_handle) {
+        if(!mIsFullBsl) ui->ProgressStatus->appendPlainText(tr("[>>] Request BSL version"));
+        QByteArray r=bslCommandTXBSLVersion();
+        if(r.size()==0) {
+            ui->ProgressStatus->appendPlainText(tr("[??] Comunication error"));
+            usbClose();
+        } else if(r.at(0)==0x3B) {
+             ui->ProgressStatus->appendPlainText(tr("[<<] limited BSL version"));
+             ui->ProgressStatus->appendPlainText(tr("[>>] Send unlock password"));
+             r=bslCommandRXPassword();
+             if(r.size()==0) {
+                 ui->ProgressStatus->appendPlainText(tr("[??] Comunication error"));
+                 usbClose();
+             } else if(r.size()>1 && r.at(0)==0x3B && r.at(1)==0x00) {
+                ui->ProgressStatus->appendPlainText(tr("[<<] BSL unlock successfull"));
+                usbUploadFullBsl();
+             } else if(r.size()>1 && r.at(0)==0x3B && r.at(1)==0x05) {
+                ui->ProgressStatus->appendPlainText(tr("[<<] wrong BSL password (mass erase occurred)"));
+                ui->ProgressStatus->appendPlainText(tr("[>>] Send unlock password"));
+                r=bslCommandRXPassword();
+                if(r.size()==0) {
+                    ui->ProgressStatus->appendPlainText(tr("[??] Comunication error"));
+                    usbClose();
+                } else if(r.size()>1 && r.at(0)==0x3B && r.at(1)==0x00) {
+                   ui->ProgressStatus->appendPlainText(tr("[<<] BSL unlock successfull"));
+                   usbUploadFullBsl();
+                } else if(r.size()>1 && r.at(0)==0x3B && r.at(1)==0x05) {
+                    ui->ProgressStatus->appendPlainText(tr("[<<] wrong BSL password"));
+                    usbClose();
+                }
+             }
+        } else if(r.at(0)==0x3A) {
+            if(!mIsFullBsl) {
+                mIsFullBsl = true;
+                ui->ProgressStatus->appendPlainText(tr("[<<] BSL version: ")+r.mid(1).toHex());
+                ui->UploadFirmware->setEnabled(true);
+            }
+        }
     }
 }
 

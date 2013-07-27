@@ -23,6 +23,7 @@ private slots:
 
 private:
     void usbDiscovery();
+    void usbCheckBslVersion();
     void usbUploadFullBsl();
     void usbUploadProgram(const QString &filename);
     void usbClose();
